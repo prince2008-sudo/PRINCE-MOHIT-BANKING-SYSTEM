@@ -9,24 +9,21 @@ import threading
 app = Flask(__name__)
 
 # =========================
-# PRINCE - MOHIT BANKING
+# PRINCE BANKING
 # =========================
 
-app.secret_key = "prince-mohit-banking-demo-key"
+app.secret_key = "prince-banking-demo-key"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, "bank_data.json")
 LOCK = threading.Lock()
 
-BANK_NAME = "Prince - Mohit Banking"
+BANK_NAME = "Prince Banking"
 
 
 # =========================
 # BRANDING
 # =========================
-# This lets you change the website name from app.py itself.
-# It also replaces the old "Prince Banking" text in existing HTML
-# files, so you do not have to rewrite your HTML just for the name.
 
 @app.after_request
 def update_branding(response):
@@ -36,10 +33,18 @@ def update_branding(response):
         try:
             html = response.get_data(as_text=True)
 
+            # Replace old branding
+            html = html.replace("Prince - Mohit Banking", BANK_NAME)
+            html = html.replace("PRINCE - MOHIT BANKING", BANK_NAME)
+            html = html.replace("Prince-Mohit Banking", BANK_NAME)
+            html = html.replace("PRINCE-MOHIT BANKING", BANK_NAME)
+
+            # Keep current branding consistent
             html = html.replace("Prince Banking", BANK_NAME)
             html = html.replace("PRINCE BANKING", BANK_NAME)
 
             response.set_data(html)
+
         except Exception:
             pass
 
@@ -48,7 +53,9 @@ def update_branding(response):
 
 @app.context_processor
 def inject_brand_name():
-    return {"brand_name": BANK_NAME}
+    return {
+        "brand_name": BANK_NAME
+    }
 
 
 # =========================
@@ -56,12 +63,13 @@ def inject_brand_name():
 # =========================
 
 def create_database():
+
     data = {
         "users": [
             {
                 "account_no": "ADMIN001",
-                "name": "Prince - Mohit Banking Admin",
-                "email": "admin@princemohitbanking.com",
+                "name": "Prince Banking Admin",
+                "email": "admin@princebanking.com",
                 "phone": "",
                 "account_type": "Admin",
                 "password_hash": generate_password_hash("admin123"),
@@ -76,23 +84,28 @@ def create_database():
 
 
 def load_database():
+
     if not os.path.exists(DATA_FILE):
         create_database()
 
     try:
+
         with open(DATA_FILE, "r", encoding="utf-8") as file:
             data = json.load(file)
 
         if not isinstance(data, dict):
+
             create_database()
 
             with open(DATA_FILE, "r", encoding="utf-8") as file:
                 data = json.load(file)
 
         data.setdefault("users", [])
+
         return data
 
     except Exception:
+
         create_database()
 
         with open(DATA_FILE, "r", encoding="utf-8") as file:
@@ -100,6 +113,7 @@ def load_database():
 
 
 def save_database(data):
+
     temporary_file = DATA_FILE + ".tmp"
 
     with open(temporary_file, "w", encoding="utf-8") as file:
@@ -109,9 +123,11 @@ def save_database(data):
 
 
 def find_user(account_no):
+
     database = load_database()
 
     for user in database.get("users", []):
+
         if str(user.get("account_no", "")) == str(account_no):
             return user
 
@@ -123,8 +139,10 @@ def find_user(account_no):
 # =========================
 
 def login_required(function):
+
     @wraps(function)
     def wrapper(*args, **kwargs):
+
         if "account_no" not in session:
             return redirect(url_for("login"))
 
@@ -134,11 +152,20 @@ def login_required(function):
 
 
 def admin_required(function):
+
     @wraps(function)
     def wrapper(*args, **kwargs):
+
         if session.get("is_admin") is not True:
-            flash("Admin access required.", "error")
-            return redirect(url_for("dashboard"))
+
+            flash(
+                "Admin access required.",
+                "error"
+            )
+
+            return redirect(
+                url_for("dashboard")
+            )
 
         return function(*args, **kwargs)
 
@@ -151,6 +178,7 @@ def admin_required(function):
 
 @app.route("/")
 def home():
+
     if "account_no" in session:
 
         if session.get("is_admin"):
@@ -192,15 +220,18 @@ def login():
             if password_hash:
 
                 try:
+
                     password_correct = check_password_hash(
                         password_hash,
                         password
                     )
 
                 except Exception:
+
                     password_correct = False
 
             else:
+
                 password_correct = False
 
             if password_correct:
@@ -232,8 +263,12 @@ def login():
 
 @app.route("/logout")
 def logout():
+
     session.clear()
-    return redirect(url_for("login"))
+
+    return redirect(
+        url_for("login")
+    )
 
 
 # =========================
@@ -276,33 +311,43 @@ def register():
         )
 
         if not name:
+
             flash(
                 "Please enter your name.",
                 "error"
             )
 
-            return render_template("register.html")
+            return render_template(
+                "register.html"
+            )
 
         if len(password) < 6:
+
             flash(
                 "Password must contain at least 6 characters.",
                 "error"
             )
 
-            return render_template("register.html")
+            return render_template(
+                "register.html"
+            )
 
         if password != confirm_password:
+
             flash(
                 "Passwords do not match.",
                 "error"
             )
 
-            return render_template("register.html")
+            return render_template(
+                "register.html"
+            )
 
         if account_type not in [
             "Savings",
             "Current"
         ]:
+
             account_type = "Savings"
 
         with LOCK:
@@ -321,23 +366,38 @@ def register():
                 )
 
                 if account.isdigit():
-                    numbers.append(int(account))
+                    numbers.append(
+                        int(account)
+                    )
 
             if numbers:
+
                 new_account = max(numbers) + 1
+
             else:
+
                 new_account = 100001
 
             new_account = str(new_account)
 
             new_user = {
+
                 "account_no": new_account,
+
                 "name": name,
+
                 "email": email,
+
                 "phone": phone,
+
                 "account_type": account_type,
-                "password_hash": generate_password_hash(password),
+
+                "password_hash": generate_password_hash(
+                    password
+                ),
+
                 "balance": 0.0,
+
                 "transactions": []
             }
 
@@ -353,7 +413,9 @@ def register():
             created_account=new_account
         )
 
-    return render_template("register.html")
+    return render_template(
+        "register.html"
+    )
 
 
 # =========================
@@ -416,6 +478,7 @@ def dashboard():
 def deposit():
 
     try:
+
         amount = float(
             request.form.get(
                 "amount",
@@ -424,6 +487,7 @@ def deposit():
         )
 
     except (ValueError, TypeError):
+
         amount = 0
 
     if amount <= 0:
@@ -440,6 +504,7 @@ def deposit():
     with LOCK:
 
         database = load_database()
+
         user = None
 
         for item in database.get("users", []):
@@ -477,9 +542,13 @@ def deposit():
         )
 
         transaction = {
+
             "title": "Cash Deposit",
+
             "amount": f"+₹{amount:,.2f}",
+
             "type": "deposit",
+
             "date": datetime.now().strftime(
                 "%d %b %Y, %I:%M %p"
             )
@@ -511,6 +580,7 @@ def deposit():
 def withdraw():
 
     try:
+
         amount = float(
             request.form.get(
                 "amount",
@@ -519,6 +589,7 @@ def withdraw():
         )
 
     except (ValueError, TypeError):
+
         amount = 0
 
     if amount <= 0:
@@ -535,6 +606,7 @@ def withdraw():
     with LOCK:
 
         database = load_database()
+
         user = None
 
         for item in database.get("users", []):
@@ -583,9 +655,13 @@ def withdraw():
         )
 
         transaction = {
+
             "title": "Cash Withdrawal",
+
             "amount": f"-₹{amount:,.2f}",
+
             "type": "withdraw",
+
             "date": datetime.now().strftime(
                 "%d %b %Y, %I:%M %p"
             )
@@ -620,11 +696,17 @@ def admin():
     database = load_database()
 
     users = []
+
     total_balance = 0.0
 
-    for user in database.get("users", []):
+    for user in database.get(
+        "users",
+        []
+    ):
 
-        if user.get("account_type") != "Admin":
+        if user.get(
+            "account_type"
+        ) != "Admin":
 
             users.append(user)
 
@@ -664,8 +746,11 @@ def delete_user(account_no):
         )
 
         database["users"] = [
+
             user
+
             for user in original_users
+
             if not (
                 str(
                     user.get(
@@ -673,7 +758,9 @@ def delete_user(account_no):
                         ""
                     )
                 ) == str(account_no)
+
                 and
+
                 user.get(
                     "account_type"
                 ) != "Admin"
@@ -700,7 +787,7 @@ if __name__ == "__main__":
 
     print("")
     print("======================================")
-    print("       PRINCE - MOHIT BANKING")
+    print("           PRINCE BANKING")
     print("======================================")
     print("")
 
